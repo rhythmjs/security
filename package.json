@@ -1,0 +1,65 @@
+{
+  "name": "@rhythmjs/security",
+  "version": "0.0.1",
+  "description": "Security middleware (CORS, CSRF protection, secure headers) for Rhythm routers and handlers.",
+  "keywords": [
+    "cors",
+    "csrf",
+    "helmet",
+    "middleware",
+    "rhythm",
+    "secure-headers",
+    "security"
+  ],
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rhythmjs/security.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./cors": {
+      "types": "./dist/cors/cors.d.ts",
+      "default": "./dist/cors/cors.js"
+    },
+    "./csrf": {
+      "types": "./dist/csrf/csrf.d.ts",
+      "default": "./dist/csrf/csrf.js"
+    },
+    "./secure-headers": {
+      "types": "./dist/secure-headers/secure-headers.d.ts",
+      "default": "./dist/secure-headers/secure-headers.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "prepublishOnly": "vp check && vp test && vp pack",
+    "typecheck": "tsc --noEmit",
+    "test": "vp test",
+    "lint": "vp lint",
+    "fmt": "vp fmt",
+    "fmt:check": "vp fmt --check",
+    "check": "vp check"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2",
+    "vite-plus": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@rhythmjs/rhythm": "^0.0.1",
+    "@rhythmjs/router": "^0.0.1"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "packageManager": "pnpm@10.33.2"
+}
