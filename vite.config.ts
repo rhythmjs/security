@@ -3,6 +3,8 @@ import { defineConfig } from "vite-plus";
 export default defineConfig({
   pack: {
     entry: {
+      "authentication/authentication": "src/authentication/authentication.ts",
+      "authorization/authorization": "src/authorization/authorization.ts",
       "cors/cors": "src/cors/cors.ts",
       "csrf/csrf": "src/csrf/csrf.ts",
       "secure-headers/secure-headers": "src/secure-headers/secure-headers.ts",

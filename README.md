@@ -9,6 +9,59 @@ exported by its own subpath — there is no root barrel export.
 pnpm add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
 ```
 
+## `@rhythmjs/security/authentication`
+
+Strategy-agnostic authentication plumbing: it does not verify credentials itself — you decide how a
+request maps to a user (session lookup, token check, anything) and these helpers handle the rest around
+the `ctx.user` convention.
+
+```ts
+import { attachUser, getBearerToken, requireAuthentication } from "@rhythmjs/security/authentication";
+
+new RhythmRouter()
+  .use(attachUser(async (ctx) => users.findByToken(getBearerToken(ctx.request))))
+  .get("/me", requireAuthentication<User>(), (ctx) => {
+    ctx.json(ctx.user);
+  });
+```
+
+- `attachUser(resolve)` — derive middleware: runs your resolver on every request and attaches
+  `ctx.user` (`TUser | null`). This is the single integration point for whatever auth strategy you use.
+- `requireAuthentication(options?)` — derive middleware that gates a route: with a user it narrows
+  `ctx.user` to `TUser` for the handler; without one it responds `401` (or `options.status` /
+  `options.message`), sets `WWW-Authenticate` from `options.challenge`, or redirects to
+  `options.redirectTo` for web pages.
+- `redirectIfAuthenticated(to)` — for login/signup pages: sends logged-in users away.
+- `isAuthenticated(ctx)` — type-guard convenience over `ctx.user`.
+- `getBearerToken(request)` / `getBasicCredentials(request)` — correct, case-insensitive
+  `Authorization` header parsing (`Bearer` token, or decoded `{ username, password }` split on the first
+  colon).
+
+## `@rhythmjs/security/authorization`
+
+Guards that run after authentication, against whatever user shape `attachUser` produced. All of them
+respond `401` when there is no user and `403` when the user is missing what the route requires.
+
+```ts
+import { authorize, requirePermissions, requireRoles } from "@rhythmjs/security/authorization";
+
+router
+  .get("/admin", requireRoles(["admin"]), handler)
+  .get("/posts", requirePermissions(["posts:read", "posts:write"]), handler)
+  .delete(
+    "/posts/:id",
+    authorize(async (ctx) => (await posts.find(ctx.params.id)).ownerId === ctx.user.id),
+    handler,
+  );
+```
+
+- `authorize(check, options?)` — the generic guard: a sync or async predicate over the context;
+  `false` responds `403` (or `options.status` / `options.message`).
+- `requireRoles(roles, options?)` — reads `user.roles` by default (override with `options.roles`);
+  `options.match` is `"any"` by default.
+- `requirePermissions(permissions, options?)` — same over `user.permissions`; `options.match` defaults
+  to `"all"`.
+
 ## `@rhythmjs/security/cors`
 
 Cross-Origin Resource Sharing, modeled on

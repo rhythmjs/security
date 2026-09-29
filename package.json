@@ -22,6 +22,14 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
+    "./authentication": {
+      "types": "./dist/authentication/authentication.d.ts",
+      "default": "./dist/authentication/authentication.js"
+    },
+    "./authorization": {
+      "types": "./dist/authorization/authorization.d.ts",
+      "default": "./dist/authorization/authorization.js"
+    },
     "./cors": {
       "types": "./dist/cors/cors.d.ts",
       "default": "./dist/cors/cors.js"
