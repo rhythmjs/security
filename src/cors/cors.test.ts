@@ -1,11 +1,15 @@
 import { describe, expect, test } from "vite-plus/test";
+import { Rhythm } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/adapters/bun";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import { cors, type CorsOptions } from "./cors";
+
+const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.routes()));
 
 const app = (options?: CorsOptions) => {
   const events: string[] = [];
-  const handler = toFetchHandler(
+  const handler = serve(
     new RhythmRouter()
       .use(cors(options))
       .use(async (ctx, next) => {

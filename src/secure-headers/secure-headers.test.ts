@@ -1,10 +1,14 @@
 import { describe, expect, test } from "vite-plus/test";
+import { Rhythm } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/adapters/bun";
+import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import { secureHeaders, type SecureHeadersOptions } from "./secure-headers";
 
+const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.routes()));
+
 const app = (options?: SecureHeadersOptions) =>
-  toFetchHandler(
+  serve(
     new RhythmRouter().use(secureHeaders(options)).get("/", (ctx) => {
       ctx.response.headers.set("content-type", "text/html");
       ctx.response.body = "<h1>hi</h1>";
