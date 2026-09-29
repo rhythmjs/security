@@ -5,7 +5,7 @@ import { toFetchHandler } from "@rhythmjs/router/adapters/bun";
 import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import { secureHeaders, type SecureHeadersOptions } from "./secure-headers";
 
-const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.routes()));
+const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.middleware()));
 
 const app = (options?: SecureHeadersOptions) =>
   serve(
