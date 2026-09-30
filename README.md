@@ -1,7 +1,8 @@
 # @rhythmjs/security
 
-Security middleware for [Rhythm](https://github.com/rhythmjs/rhythm) routers and handlers. Each module is
-exported by its own subpath — there is no root barrel export.
+Security middleware for [Rhythm](https://github.com/rhythmjs/rhythm), the Bun-native backend
+framework: authentication plumbing, authorization guards, CORS, CSRF protection, rate limiting, and
+secure headers. Each module is exported by its own subpath — there is no root barrel export.
 
 ## Install
 
