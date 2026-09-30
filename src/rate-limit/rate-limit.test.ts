@@ -165,14 +165,23 @@ describe("rateLimit", () => {
 describe("rateLimitWs", () => {
   const upgrade = (headers: Record<string, string> = {}) => new Request("http://localhost/ws", { headers });
 
-  test("allows upgrades under the limit and rejects with 429 over it, RhythmWs.guard-shaped", async () => {
-    const guard = rateLimitWs({ limit: 1 });
+  const run = async (middleware: ReturnType<typeof rateLimitWs>, request: Request) => {
+    const ctx = { request, response: undefined as Response | undefined };
+    let passed = false;
+    await middleware(ctx, async () => void (passed = true));
+    return { passed, response: ctx.response };
+  };
 
-    expect(await guard(upgrade())).toBeUndefined();
+  test("allows upgrades under the limit and rejects with 429 over it, RhythmWs.use-shaped", async () => {
+    const middleware = rateLimitWs({ limit: 1 });
 
-    const rejected = await guard(upgrade());
-    expect(rejected).toBeInstanceOf(Response);
-    const response = rejected as Response;
+    const allowed = await run(middleware, upgrade());
+    expect(allowed.passed).toBe(true);
+    expect(allowed.response).toBeUndefined();
+
+    const rejected = await run(middleware, upgrade());
+    expect(rejected.passed).toBe(false);
+    const response = rejected.response as Response;
     expect(response.status).toBe(429);
     expect(Number(response.headers.get("retry-after"))).toBeGreaterThan(0);
     expect(response.headers.get("ratelimit-limit")).toBe("1");
@@ -180,20 +189,20 @@ describe("rateLimitWs", () => {
   });
 
   test("skips upgrades the skip predicate approves", async () => {
-    const guard = rateLimitWs({ limit: 0, skip: (request) => request.headers.get("x-internal") === "1" });
+    const middleware = rateLimitWs({ limit: 0, skip: (request) => request.headers.get("x-internal") === "1" });
 
-    expect(await guard(upgrade({ "x-internal": "1" }))).toBeUndefined();
-    expect(await guard(upgrade())).toBeInstanceOf(Response);
+    expect((await run(middleware, upgrade({ "x-internal": "1" }))).passed).toBe(true);
+    expect((await run(middleware, upgrade())).response).toBeInstanceOf(Response);
   });
 
   test("shares budget with rateLimit through a common store", async () => {
     const store = memoryRateLimitStore();
     const handler = app({ limit: 2, store, trustProxy: true });
-    const guard = rateLimitWs({ limit: 2, store, trustProxy: true });
+    const middleware = rateLimitWs({ limit: 2, store, trustProxy: true });
 
     expect((await handler(get({ "x-forwarded-for": "3.3.3.3" }))).status).toBe(200);
-    expect(await guard(upgrade({ "x-forwarded-for": "3.3.3.3" }))).toBeUndefined();
-    expect(await guard(upgrade({ "x-forwarded-for": "3.3.3.3" }))).toBeInstanceOf(Response);
+    expect((await run(middleware, upgrade({ "x-forwarded-for": "3.3.3.3" }))).passed).toBe(true);
+    expect((await run(middleware, upgrade({ "x-forwarded-for": "3.3.3.3" }))).response).toBeInstanceOf(Response);
     expect((await handler(get({ "x-forwarded-for": "3.3.3.3" }))).status).toBe(429);
   });
 });

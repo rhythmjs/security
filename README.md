@@ -113,7 +113,8 @@ new RhythmRouter().use(csrf()).post("/submit", (ctx) => {
 
 Fixed-window rate limiting with pluggable storage. Two entry points share the same options and stores:
 `rateLimit` for the HTTP pipeline and `rateLimitWs` for WebSocket upgrades, shaped exactly like an
-`@rhythmjs/ws` guard (`(request) => Promise<Response | undefined>`), with no dependency on it.
+`@rhythmjs/ws` middleware (`(ctx, next)`; it sets `ctx.response` to reject), with no dependency on
+it.
 
 ```ts
 import { rateLimit } from "@rhythmjs/security/rate-limit";
@@ -127,7 +128,7 @@ new RhythmRouter().use(rateLimit({ limit: 100, windowMs: 60_000 })).get("/api/da
 import { rateLimitWs } from "@rhythmjs/security/rate-limit";
 import { RhythmWs } from "@rhythmjs/ws";
 
-new RhythmWs().guard(rateLimitWs({ limit: 10 })).route("/chat", { message(peer, message) {} });
+new RhythmWs().use(rateLimitWs({ limit: 10 })).route("/chat", { message(peer, message) {} });
 ```
 
 Options (`RateLimitOptions`, shared by both):

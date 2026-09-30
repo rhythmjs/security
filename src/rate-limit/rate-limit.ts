@@ -119,18 +119,29 @@ export function rateLimit(options: RateLimitOptions = {}): Middleware<RhythmHttp
   };
 }
 
-export type RateLimitWsGuard = (request: Request) => Promise<Response | undefined>;
+export interface RateLimitWsContext {
+  readonly request: Request;
+  response: Response | undefined;
+}
 
-export function rateLimitWs(options: RateLimitOptions = {}): RateLimitWsGuard {
+export type RateLimitWsMiddleware = (ctx: RateLimitWsContext, next: () => Promise<unknown>) => Promise<void>;
+
+export function rateLimitWs(options: RateLimitOptions = {}): RateLimitWsMiddleware {
   const withHeaders = options.headers ?? true;
   const message = options.message ?? "Too Many Requests";
   const skip = options.skip;
   const check = createLimiter(options);
 
-  return async (request) => {
-    if (skip !== undefined && (await skip(request))) return undefined;
-    const verdict = await check(request);
-    if (verdict.allowed) return undefined;
+  return async (ctx, next) => {
+    if (skip !== undefined && (await skip(ctx.request))) {
+      await next();
+      return;
+    }
+    const verdict = await check(ctx.request);
+    if (verdict.allowed) {
+      await next();
+      return;
+    }
     const headers = new Headers({
       "content-type": "application/json",
       "retry-after": String(verdict.resetSeconds),
@@ -140,6 +151,6 @@ export function rateLimitWs(options: RateLimitOptions = {}): RateLimitWsGuard {
       headers.set("ratelimit-remaining", String(verdict.remaining));
       headers.set("ratelimit-reset", String(verdict.resetSeconds));
     }
-    return new Response(JSON.stringify({ success: false, status: 429, message }), { status: 429, headers });
+    ctx.response = new Response(JSON.stringify({ success: false, status: 429, message }), { status: 429, headers });
   };
 }
