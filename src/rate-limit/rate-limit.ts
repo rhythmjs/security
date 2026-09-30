@@ -45,14 +45,26 @@ export interface RateLimitOptions {
   skip?: (request: Request) => boolean | Promise<boolean>;
   headers?: boolean;
   message?: string;
+  trustProxy?: boolean | number;
 }
 
-function clientKey(request: Request): string {
-  const ip = (request as { ip?: string }).ip;
-  if (ip !== undefined && ip !== "") return ip;
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded !== null) return forwarded.split(",")[0]!.trim();
-  return "global";
+const MAX_KEY_LENGTH = 64;
+
+function clientKeyOf(trustProxy: boolean | number): (request: Request) => string {
+  const hops = trustProxy === true ? 1 : trustProxy === false ? 0 : Math.max(0, Math.trunc(trustProxy));
+  return (request) => {
+    if (hops > 0) {
+      const forwarded = request.headers.get("x-forwarded-for");
+      if (forwarded !== null) {
+        const entries = forwarded.split(",");
+        const entry = entries[Math.max(0, entries.length - hops)]?.trim();
+        if (entry !== undefined && entry !== "") return entry.slice(0, MAX_KEY_LENGTH);
+      }
+    }
+    const ip = (request as { ip?: string }).ip;
+    if (ip !== undefined && ip !== "") return ip;
+    return "global";
+  };
 }
 
 interface Verdict {
@@ -66,7 +78,7 @@ function createLimiter(options: RateLimitOptions): (request: Request) => Promise
   const limit = options.limit ?? 100;
   const windowMs = options.windowMs ?? 60_000;
   const store = options.store ?? memoryRateLimitStore();
-  const keyOf = options.keyOf ?? clientKey;
+  const keyOf = options.keyOf ?? clientKeyOf(options.trustProxy ?? false);
 
   return async (request) => {
     const info = await store.increment(await keyOf(request), windowMs);

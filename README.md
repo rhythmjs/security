@@ -138,8 +138,16 @@ Options (`RateLimitOptions`, shared by both):
   `{ count, resetAt }`, and `reset(key)`; sync or async). Defaults to `memoryRateLimitStore()`, a
   per-middleware in-memory store; pass one instance to both middleware (or back it with Redis etc.) to
   share a budget across pipelines and processes.
-- `keyOf(request)`: the bucket key. Defaults to the client IP: `request.ip` when present (expose it in your `Bun.serve` fetch via `server.requestIP()`; see the router README), else
-  the first `x-forwarded-for` entry, else a single global bucket.
+- `trustProxy`: how many reverse-proxy hops in front of the server to trust (default `false`, `true`
+  means `1`). When set, the default key is the `x-forwarded-for` entry that many hops from the
+  *right* — the entry your own proxy appended — so a client cannot open fresh buckets by prepending
+  spoofed addresses. Leave it off for direct deployments: then `x-forwarded-for` is ignored
+  entirely, since anyone can send it.
+- `keyOf(request)`: the bucket key. Defaults to the client IP: the trusted `x-forwarded-for` entry
+  when `trustProxy` is set, else `request.ip` when present (expose it in your `Bun.serve` fetch via
+  `server.requestIP()`; see the router README), else a single global bucket. Behind a proxy you
+  must set `trustProxy` (or a custom `keyOf`): otherwise every client shares the proxy's
+  `request.ip` bucket and one abuser can exhaust the site-wide budget.
 - `skip(request)`: exempt requests (health checks, internal traffic).
 - `headers`: set `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` (seconds) on responses
   (default `true`). `Retry-After` is always set on rejections.

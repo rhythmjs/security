@@ -64,12 +64,51 @@ describe("rateLimit", () => {
     expect(blocked.headers.get("retry-after")).not.toBeNull();
   });
 
-  test("counts clients separately by x-forwarded-for", async () => {
-    const handler = app({ limit: 1 });
+  test("ignores x-forwarded-for by default: spoofed headers share one bucket", async () => {
+    const handler = app({ limit: 2 });
 
     expect((await handler(get({ "x-forwarded-for": "1.1.1.1" }))).status).toBe(200);
     expect((await handler(get({ "x-forwarded-for": "2.2.2.2" }))).status).toBe(200);
-    expect((await handler(get({ "x-forwarded-for": "1.1.1.1, 10.0.0.1" }))).status).toBe(429);
+    expect((await handler(get({ "x-forwarded-for": "3.3.3.3" }))).status).toBe(429);
+  });
+
+  test("trustProxy: true keys on the proxy-appended (rightmost) x-forwarded-for entry", async () => {
+    const handler = app({ limit: 1, trustProxy: true });
+
+    expect((await handler(get({ "x-forwarded-for": "1.1.1.1" }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": "2.2.2.2" }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": "spoofed, 1.1.1.1" }))).status).toBe(429);
+  });
+
+  test("a spoofed prefix cannot open a fresh bucket under trustProxy", async () => {
+    const handler = app({ limit: 1, trustProxy: true });
+
+    expect((await handler(get({ "x-forwarded-for": "1.1.1.1" }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": "9.9.9.9, 1.1.1.1" }))).status).toBe(429);
+    expect((await handler(get({ "x-forwarded-for": "8.8.8.8, 1.1.1.1" }))).status).toBe(429);
+  });
+
+  test("trustProxy: 2 keys on the entry two hops from the right", async () => {
+    const handler = app({ limit: 1, trustProxy: 2 });
+
+    expect((await handler(get({ "x-forwarded-for": "1.1.1.1, 10.0.0.1" }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": "2.2.2.2, 10.0.0.1" }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": "spoofed, 1.1.1.1, 10.0.0.1" }))).status).toBe(429);
+  });
+
+  test("trustProxy without an x-forwarded-for header falls back to the shared bucket", async () => {
+    const handler = app({ limit: 1, trustProxy: true });
+
+    expect((await handler(get())).status).toBe(200);
+    expect((await handler(get())).status).toBe(429);
+  });
+
+  test("truncates oversized forwarded entries so keys stay bounded", async () => {
+    const handler = app({ limit: 1, trustProxy: true });
+    const junk = "x".repeat(10_000);
+
+    expect((await handler(get({ "x-forwarded-for": junk }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": junk + "y" }))).status).toBe(429);
   });
 
   test("starts a fresh window after windowMs elapses", async () => {
@@ -108,7 +147,7 @@ describe("rateLimit", () => {
       },
       reset() {},
     };
-    const handler = app({ limit: 5, windowMs: 1234, store });
+    const handler = app({ limit: 5, windowMs: 1234, store, trustProxy: true });
 
     const blocked = await handler(get({ "x-forwarded-for": "9.9.9.9" }));
     expect(blocked.status).toBe(429);
@@ -149,8 +188,8 @@ describe("rateLimitWs", () => {
 
   test("shares budget with rateLimit through a common store", async () => {
     const store = memoryRateLimitStore();
-    const handler = app({ limit: 2, store });
-    const guard = rateLimitWs({ limit: 2, store });
+    const handler = app({ limit: 2, store, trustProxy: true });
+    const guard = rateLimitWs({ limit: 2, store, trustProxy: true });
 
     expect((await handler(get({ "x-forwarded-for": "3.3.3.3" }))).status).toBe(200);
     expect(await guard(upgrade({ "x-forwarded-for": "3.3.3.3" }))).toBeUndefined();
