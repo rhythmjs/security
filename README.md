@@ -6,7 +6,7 @@ exported by its own subpath — there is no root barrel export.
 ## Install
 
 ```sh
-pnpm add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
+bun add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
 ```
 
 ## `@rhythmjs/security/authentication`
@@ -137,7 +137,7 @@ Options (`RateLimitOptions`, shared by both):
   `{ count, resetAt }`, and `reset(key)`; sync or async). Defaults to `memoryRateLimitStore()`, a
   per-middleware in-memory store; pass one instance to both middleware (or back it with Redis etc.) to
   share a budget across pipelines and processes.
-- `keyOf(request)` — the bucket key. Defaults to the client IP: srvx's `request.ip` when present, else
+- `keyOf(request)` — the bucket key. Defaults to the client IP: `request.ip` (set by `@rhythmjs/router`'s `serve()`) when present, else
   the first `x-forwarded-for` entry, else a single global bucket.
 - `skip(request)` — exempt requests (health checks, internal traffic).
 - `headers` — set `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` (seconds) on responses
@@ -188,8 +188,8 @@ secureHeaders({
 ## Development
 
 ```sh
-pnpm install
-pnpm test       # vp test
-pnpm typecheck  # tsc --noEmit
-pnpm build      # vp pack
+bun install
+bun test           # bun test runner
+bun run typecheck  # tsc --noEmit
+bun run build      # bun build + tsc declarations
 ```
