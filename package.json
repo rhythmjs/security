@@ -1,6 +1,6 @@
 {
   "name": "@rhythmjs/security",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Security middleware (CORS, CSRF protection, secure headers) for Rhythm routers and handlers.",
   "keywords": [
     "cors",
