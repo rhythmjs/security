@@ -7,6 +7,7 @@ export default defineConfig({
       "authorization/authorization": "src/authorization/authorization.ts",
       "cors/cors": "src/cors/cors.ts",
       "csrf/csrf": "src/csrf/csrf.ts",
+      "rate-limit/rate-limit": "src/rate-limit/rate-limit.ts",
       "secure-headers/secure-headers": "src/secure-headers/secure-headers.ts",
     },
     format: "esm",

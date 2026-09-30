@@ -108,6 +108,44 @@ new RhythmRouter().use(csrf()).post("/submit", (ctx) => {
 - `csrf({ origin })` — a string, array of strings, or `(origin) => boolean` naming the allowed origins.
 - A blocked request gets `403 { "success": false, "status": 403, "message": "Forbidden" }`.
 
+## `@rhythmjs/security/rate-limit`
+
+Fixed-window rate limiting with pluggable storage. Two middleware share the same options and stores:
+`rateLimit` for the HTTP pipeline and `rateLimitWs` for WebSocket upgrades (structurally compatible with
+`@rhythmjs/ws`'s `WsMiddleware`, no dependency on it).
+
+```ts
+import { rateLimit } from "@rhythmjs/security/rate-limit";
+
+new RhythmRouter().use(rateLimit({ limit: 100, windowMs: 60_000 })).get("/api/data", (ctx) => {
+  ctx.response.body = "data";
+});
+```
+
+```ts
+import { rateLimitWs } from "@rhythmjs/security/rate-limit";
+import { RhythmWs } from "@rhythmjs/ws";
+
+new RhythmWs().use(rateLimitWs({ limit: 10 })).ws("/chat", { message(peer, msg) {} });
+```
+
+Options (`RateLimitOptions`, shared by both):
+
+- `limit` — requests allowed per window (default `100`).
+- `windowMs` — window length in milliseconds (default `60_000`).
+- `store` — any object satisfying `RateLimitStore` (`increment(key, windowMs)` returning
+  `{ count, resetAt }`, and `reset(key)`; sync or async). Defaults to `memoryRateLimitStore()`, a
+  per-middleware in-memory store; pass one instance to both middleware (or back it with Redis etc.) to
+  share a budget across pipelines and processes.
+- `keyOf(request)` — the bucket key. Defaults to the client IP: srvx's `request.ip` when present, else
+  the first `x-forwarded-for` entry, else a single global bucket.
+- `skip(request)` — exempt requests (health checks, internal traffic).
+- `headers` — set `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` (seconds) on responses
+  (default `true`). `Retry-After` is always set on rejections.
+- `message` — body message for rejections.
+- A blocked request gets `429 { "success": false, "status": 429, "message": "Too Many Requests" }`;
+  `rateLimitWs` rejects the upgrade with the same response.
+
 ## `@rhythmjs/security/secure-headers`
 
 Helmet-style security headers, applied to every response after the handlers run.

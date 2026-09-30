@@ -1,12 +1,13 @@
 {
   "name": "@rhythmjs/security",
   "version": "0.0.4",
-  "description": "Security middleware (CORS, CSRF protection, secure headers) for Rhythm routers and handlers.",
+  "description": "Security middleware (CORS, CSRF protection, secure headers, rate limiting) for Rhythm routers and handlers.",
   "keywords": [
     "cors",
     "csrf",
     "helmet",
     "middleware",
+    "rate-limit",
     "rhythm",
     "secure-headers",
     "security"
@@ -37,6 +38,10 @@
     "./csrf": {
       "types": "./dist/csrf/csrf.d.ts",
       "default": "./dist/csrf/csrf.js"
+    },
+    "./rate-limit": {
+      "types": "./dist/rate-limit/rate-limit.d.ts",
+      "default": "./dist/rate-limit/rate-limit.js"
     },
     "./secure-headers": {
       "types": "./dist/secure-headers/secure-headers.d.ts",
