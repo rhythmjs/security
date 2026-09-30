@@ -126,14 +126,12 @@ describe("rateLimit", () => {
 describe("rateLimitWs", () => {
   const upgrade = (headers: Record<string, string> = {}) => new Request("http://localhost/ws", { headers });
 
-  test("passes hooks through under the limit and rejects with 429 over it", async () => {
-    const hooks = { message() {} };
-    const next = () => Promise.resolve(hooks);
-    const middleware = rateLimitWs({ limit: 1 });
+  test("allows upgrades under the limit and rejects with 429 over it, RhythmWs.guard-shaped", async () => {
+    const guard = rateLimitWs({ limit: 1 });
 
-    expect(await middleware(upgrade(), next)).toBe(hooks);
+    expect(await guard(upgrade())).toBeUndefined();
 
-    const rejected = await middleware(upgrade(), next);
+    const rejected = await guard(upgrade());
     expect(rejected).toBeInstanceOf(Response);
     const response = rejected as Response;
     expect(response.status).toBe(429);
@@ -143,23 +141,20 @@ describe("rateLimitWs", () => {
   });
 
   test("skips upgrades the skip predicate approves", async () => {
-    const hooks = {};
-    const next = () => Promise.resolve(hooks);
-    const middleware = rateLimitWs({ limit: 0, skip: (request) => request.headers.get("x-internal") === "1" });
+    const guard = rateLimitWs({ limit: 0, skip: (request) => request.headers.get("x-internal") === "1" });
 
-    expect(await middleware(upgrade({ "x-internal": "1" }), next)).toBe(hooks);
-    expect(await middleware(upgrade(), next)).toBeInstanceOf(Response);
+    expect(await guard(upgrade({ "x-internal": "1" }))).toBeUndefined();
+    expect(await guard(upgrade())).toBeInstanceOf(Response);
   });
 
   test("shares budget with rateLimit through a common store", async () => {
     const store = memoryRateLimitStore();
     const handler = app({ limit: 2, store });
-    const middleware = rateLimitWs({ limit: 2, store });
-    const next = () => Promise.resolve({});
+    const guard = rateLimitWs({ limit: 2, store });
 
     expect((await handler(get({ "x-forwarded-for": "3.3.3.3" }))).status).toBe(200);
-    expect(await middleware(upgrade({ "x-forwarded-for": "3.3.3.3" }), next)).toEqual({});
-    expect(await middleware(upgrade({ "x-forwarded-for": "3.3.3.3" }), next)).toBeInstanceOf(Response);
+    expect(await guard(upgrade({ "x-forwarded-for": "3.3.3.3" }))).toBeUndefined();
+    expect(await guard(upgrade({ "x-forwarded-for": "3.3.3.3" }))).toBeInstanceOf(Response);
     expect((await handler(get({ "x-forwarded-for": "3.3.3.3" }))).status).toBe(429);
   });
 });

@@ -107,21 +107,18 @@ export function rateLimit(options: RateLimitOptions = {}): Middleware<RhythmHttp
   };
 }
 
-export type RateLimitWsMiddleware = <THooks extends object>(
-  request: Request,
-  next: () => Promise<THooks>,
-) => Promise<THooks | Response>;
+export type RateLimitWsGuard = (request: Request) => Promise<Response | undefined>;
 
-export function rateLimitWs(options: RateLimitOptions = {}): RateLimitWsMiddleware {
+export function rateLimitWs(options: RateLimitOptions = {}): RateLimitWsGuard {
   const withHeaders = options.headers ?? true;
   const message = options.message ?? "Too Many Requests";
   const skip = options.skip;
   const check = createLimiter(options);
 
-  return async (request, next) => {
-    if (skip !== undefined && (await skip(request))) return next();
+  return async (request) => {
+    if (skip !== undefined && (await skip(request))) return undefined;
     const verdict = await check(request);
-    if (verdict.allowed) return next();
+    if (verdict.allowed) return undefined;
     const headers = new Headers({
       "content-type": "application/json",
       "retry-after": String(verdict.resetSeconds),

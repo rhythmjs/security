@@ -2,7 +2,7 @@
 
 Security middleware for [Rhythm](https://github.com/rhythmjs/rhythm), the Bun-native backend
 framework: authentication plumbing, authorization guards, CORS, CSRF protection, rate limiting, and
-secure headers. Each module is exported by its own subpath — there is no root barrel export.
+secure headers. Each module is exported by its own subpath; there is no root barrel export.
 
 ## Install
 
@@ -12,7 +12,7 @@ bun add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
 
 ## `@rhythmjs/security/authentication`
 
-Strategy-agnostic authentication plumbing: it does not verify credentials itself — you decide how a
+Strategy-agnostic authentication plumbing: it does not verify credentials itself; you decide how a
 request maps to a user (session lookup, token check, anything) and these helpers handle the rest around
 the `ctx.user` convention.
 
@@ -26,15 +26,15 @@ new RhythmRouter()
   });
 ```
 
-- `attachUser(resolve)` — derive middleware: runs your resolver on every request and attaches
+- `attachUser(resolve)`: derive middleware that runs your resolver on every request and attaches
   `ctx.user` (`TUser | null`). This is the single integration point for whatever auth strategy you use.
-- `requireAuthentication(options?)` — derive middleware that gates a route: with a user it narrows
+- `requireAuthentication(options?)`: derive middleware that gates a route; with a user it narrows
   `ctx.user` to `TUser` for the handler; without one it responds `401` (or `options.status` /
   `options.message`), sets `WWW-Authenticate` from `options.challenge`, or redirects to
   `options.redirectTo` for web pages.
-- `redirectIfAuthenticated(to)` — for login/signup pages: sends logged-in users away.
-- `isAuthenticated(ctx)` — type-guard convenience over `ctx.user`.
-- `getBearerToken(request)` / `getBasicCredentials(request)` — correct, case-insensitive
+- `redirectIfAuthenticated(to)`: for login/signup pages; sends logged-in users away.
+- `isAuthenticated(ctx)`: type-guard convenience over `ctx.user`.
+- `getBearerToken(request)` / `getBasicCredentials(request)`: correct, case-insensitive
   `Authorization` header parsing (`Bearer` token, or decoded `{ username, password }` split on the first
   colon).
 
@@ -56,11 +56,11 @@ router
   );
 ```
 
-- `authorize(check, options?)` — the generic guard: a sync or async predicate over the context;
+- `authorize(check, options?)`: the generic guard, a sync or async predicate over the context;
   `false` responds `403` (or `options.status` / `options.message`).
-- `requireRoles(roles, options?)` — reads `user.roles` by default (override with `options.roles`);
+- `requireRoles(roles, options?)`: reads `user.roles` by default (override with `options.roles`);
   `options.match` is `"any"` by default.
-- `requirePermissions(permissions, options?)` — same over `user.permissions`; `options.match` defaults
+- `requirePermissions(permissions, options?)`: same over `user.permissions`; `options.match` defaults
   to `"all"`.
 
 ## `@rhythmjs/security/cors`
@@ -83,11 +83,11 @@ new RhythmRouter()
 
 Options (`CorsOptions`):
 
-- `origin` — `"*"` (default), a single origin string, an array of origins, or
+- `origin`: `"*"` (default), a single origin string, an array of origins, or
   `(origin) => string | null`. Non-wildcard origins are echoed back only when they match, and
   `Vary: Origin` is appended.
-- `allowMethods` — default `GET,HEAD,PUT,POST,DELETE,PATCH,QUERY`.
-- `allowHeaders` — default: reflect the preflight's `Access-Control-Request-Headers`.
+- `allowMethods`: default `GET,HEAD,PUT,POST,DELETE,PATCH,QUERY`.
+- `allowHeaders`: default is to reflect the preflight's `Access-Control-Request-Headers`.
 - `exposeHeaders`, `maxAge`, `credentials`.
 
 ## `@rhythmjs/security/csrf`
@@ -105,15 +105,15 @@ new RhythmRouter().use(csrf()).post("/submit", (ctx) => {
 });
 ```
 
-- `csrf()` — allows only same-origin form posts (the request URL's own origin).
-- `csrf({ origin })` — a string, array of strings, or `(origin) => boolean` naming the allowed origins.
+- `csrf()`: allows only same-origin form posts (the request URL's own origin).
+- `csrf({ origin })`: a string, array of strings, or `(origin) => boolean` naming the allowed origins.
 - A blocked request gets `403 { "success": false, "status": 403, "message": "Forbidden" }`.
 
 ## `@rhythmjs/security/rate-limit`
 
-Fixed-window rate limiting with pluggable storage. Two middleware share the same options and stores:
-`rateLimit` for the HTTP pipeline and `rateLimitWs` for WebSocket upgrades (structurally compatible with
-`@rhythmjs/ws`'s `WsMiddleware`, no dependency on it).
+Fixed-window rate limiting with pluggable storage. Two entry points share the same options and stores:
+`rateLimit` for the HTTP pipeline and `rateLimitWs` for WebSocket upgrades, shaped exactly like an
+`@rhythmjs/ws` guard (`(request) => Promise<Response | undefined>`), with no dependency on it.
 
 ```ts
 import { rateLimit } from "@rhythmjs/security/rate-limit";
@@ -127,23 +127,23 @@ new RhythmRouter().use(rateLimit({ limit: 100, windowMs: 60_000 })).get("/api/da
 import { rateLimitWs } from "@rhythmjs/security/rate-limit";
 import { RhythmWs } from "@rhythmjs/ws";
 
-new RhythmWs().use(rateLimitWs({ limit: 10 })).ws("/chat", { message(peer, msg) {} });
+new RhythmWs().guard(rateLimitWs({ limit: 10 })).route("/chat", { message(peer, message) {} });
 ```
 
 Options (`RateLimitOptions`, shared by both):
 
-- `limit` — requests allowed per window (default `100`).
-- `windowMs` — window length in milliseconds (default `60_000`).
-- `store` — any object satisfying `RateLimitStore` (`increment(key, windowMs)` returning
+- `limit`: requests allowed per window (default `100`).
+- `windowMs`: window length in milliseconds (default `60_000`).
+- `store`: any object satisfying `RateLimitStore` (`increment(key, windowMs)` returning
   `{ count, resetAt }`, and `reset(key)`; sync or async). Defaults to `memoryRateLimitStore()`, a
   per-middleware in-memory store; pass one instance to both middleware (or back it with Redis etc.) to
   share a budget across pipelines and processes.
-- `keyOf(request)` — the bucket key. Defaults to the client IP: `request.ip` (set by `@rhythmjs/router`'s `serve()`) when present, else
+- `keyOf(request)`: the bucket key. Defaults to the client IP: `request.ip` when present (expose it in your `Bun.serve` fetch via `server.requestIP()`; see the router README), else
   the first `x-forwarded-for` entry, else a single global bucket.
-- `skip(request)` — exempt requests (health checks, internal traffic).
-- `headers` — set `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` (seconds) on responses
+- `skip(request)`: exempt requests (health checks, internal traffic).
+- `headers`: set `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` (seconds) on responses
   (default `true`). `Retry-After` is always set on rejections.
-- `message` — body message for rejections.
+- `message`: body message for rejections.
 - A blocked request gets `429 { "success": false, "status": 429, "message": "Too Many Requests" }`;
   `rateLimitWs` rejects the upgrade with the same response.
 
@@ -161,18 +161,18 @@ new RhythmRouter().use(secureHeaders()).get("/", (ctx) => {
 
 Defaults:
 
-| Header                              | Value                                 |
+| Header | Value |
 | ----------------------------------- | ------------------------------------- |
-| `Cross-Origin-Opener-Policy`        | `same-origin`                         |
-| `Cross-Origin-Resource-Policy`      | `same-origin`                         |
-| `Referrer-Policy`                   | `no-referrer`                         |
-| `Strict-Transport-Security`         | `max-age=15552000; includeSubDomains` |
-| `X-Content-Type-Options`            | `nosniff`                             |
-| `X-DNS-Prefetch-Control`            | `off`                                 |
-| `X-Download-Options`                | `noopen`                              |
-| `X-Frame-Options`                   | `SAMEORIGIN`                          |
-| `X-Permitted-Cross-Domain-Policies` | `none`                                |
-| `X-XSS-Protection`                  | `0`                                   |
+| `Cross-Origin-Opener-Policy` | `same-origin` |
+| `Cross-Origin-Resource-Policy` | `same-origin` |
+| `Referrer-Policy` | `no-referrer` |
+| `Strict-Transport-Security` | `max-age=15552000; includeSubDomains` |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-DNS-Prefetch-Control` | `off` |
+| `X-Download-Options` | `noopen` |
+| `X-Frame-Options` | `SAMEORIGIN` |
+| `X-Permitted-Cross-Domain-Policies` | `none` |
+| `X-XSS-Protection` | `0` |
 
 Every option accepts a string to override the value or `false` to drop the header.
 `contentSecurityPolicy` and `crossOriginEmbedderPolicy` are off by default and set only when configured:
@@ -190,7 +190,7 @@ secureHeaders({
 
 ```sh
 bun install
-bun test           # bun test runner
-bun run typecheck  # tsc --noEmit
-bun run build      # bun build + tsc declarations
+bun test # bun test runner
+bun run typecheck # tsc --noEmit
+bun run build # bun build + tsc declarations
 ```
