@@ -119,12 +119,22 @@ describe("rateLimit", () => {
     expect((await handler(new Request("http://localhost/data"))).status).toBe(429);
   });
 
-  test("truncates oversized forwarded entries so keys stay bounded", async () => {
+  test("ignores a non-IP trusted entry and keys on request.ip instead of letting junk open buckets", async () => {
     const handler = app({ limit: 1, trustProxy: true });
     const junk = "x".repeat(10_000);
 
     expect((await handler(get({ "x-forwarded-for": junk }))).status).toBe(200);
     expect((await handler(get({ "x-forwarded-for": junk + "y" }))).status).toBe(429);
+    expect((await handler(get({ "x-forwarded-for": "not-an-ip" }))).status).toBe(429);
+    expect((await handler(get({ "x-forwarded-for": "1.2.3.4" }))).status).toBe(200);
+  });
+
+  test("accepts IPv4 and IPv6 forwarded entries", async () => {
+    const handler = app({ limit: 1, trustProxy: true });
+
+    expect((await handler(get({ "x-forwarded-for": "2001:db8::1" }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": "2001:db8::2" }))).status).toBe(200);
+    expect((await handler(get({ "x-forwarded-for": "2001:db8::1" }))).status).toBe(429);
   });
 
   test("starts a fresh window after windowMs elapses", async () => {
@@ -175,6 +185,20 @@ describe("rateLimit", () => {
 
     const blocked = await handler(get());
     expect(await blocked.json()).toEqual({ success: false, status: 429, message: "Slow down" });
+  });
+});
+
+describe("memoryRateLimitStore size cap", () => {
+  test("evicts the oldest-inserted key once maxKeys is reached", () => {
+    const store = memoryRateLimitStore({ maxKeys: 2 });
+
+    store.increment("a", 60_000);
+    store.increment("b", 60_000);
+    store.increment("c", 60_000);
+
+    expect((store.increment("b", 60_000) as RateLimitInfo).count).toBe(2);
+    expect((store.increment("c", 60_000) as RateLimitInfo).count).toBe(2);
+    expect((store.increment("a", 60_000) as RateLimitInfo).count).toBe(1);
   });
 });
 

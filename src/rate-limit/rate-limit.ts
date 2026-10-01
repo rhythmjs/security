@@ -1,3 +1,4 @@
+import { isIP } from "node:net";
 import type { Middleware } from "@rhythmjs/rhythm/types";
 import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 
@@ -11,7 +12,12 @@ export interface RateLimitStore {
   reset(key: string): Promise<void> | void;
 }
 
-export function memoryRateLimitStore(): RateLimitStore {
+export interface MemoryRateLimitStoreOptions {
+  maxKeys?: number;
+}
+
+export function memoryRateLimitStore(options: MemoryRateLimitStoreOptions = {}): RateLimitStore {
+  const maxKeys = options.maxKeys ?? 10_000;
   const entries = new Map<string, { count: number; resetAt: number }>();
   let nextSweep = 0;
 
@@ -24,6 +30,11 @@ export function memoryRateLimitStore(): RateLimitStore {
       }
       const entry = entries.get(key);
       if (entry === undefined || entry.resetAt <= now) {
+        if (entry === undefined && entries.size >= maxKeys) {
+          const oldest = entries.keys().next().value;
+          if (oldest !== undefined) entries.delete(oldest);
+        }
+        entries.delete(key);
         const fresh = { count: 1, resetAt: now + windowMs };
         entries.set(key, fresh);
         return { ...fresh };
@@ -48,8 +59,6 @@ export interface RateLimitOptions {
   trustProxy?: boolean | number;
 }
 
-const MAX_KEY_LENGTH = 64;
-
 function clientKeyOf(trustProxy: boolean | number): (request: Request) => string {
   const hops = trustProxy === true ? 1 : trustProxy === false ? 0 : Math.max(0, Math.trunc(trustProxy));
   return (request) => {
@@ -58,7 +67,7 @@ function clientKeyOf(trustProxy: boolean | number): (request: Request) => string
       if (forwarded !== null) {
         const entries = forwarded.split(",");
         const entry = entries[Math.max(0, entries.length - hops)]?.trim();
-        if (entry !== undefined && entry !== "") return entry.slice(0, MAX_KEY_LENGTH);
+        if (entry !== undefined && isIP(entry) !== 0) return entry;
       }
     }
     const ip = (request as { ip?: string }).ip;

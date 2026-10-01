@@ -138,11 +138,15 @@ Options (`RateLimitOptions`, shared by both):
 - `store`: any object satisfying `RateLimitStore` (`increment(key, windowMs)` returning
   `{ count, resetAt }`, and `reset(key)`; sync or async). Defaults to `memoryRateLimitStore()`, a
   per-middleware in-memory store; pass one instance to both middleware (or back it with Redis etc.) to
-  share a budget across pipelines and processes.
+  share a budget across pipelines and processes. The memory store holds at most `maxKeys` (default
+  `10_000`) keys, evicting the oldest-inserted one when full, so key-rotation floods cannot grow memory
+  without bound (at the cost that a flood can reset other clients' counters; use a Redis store if that
+  matters).
 - `trustProxy`: how many reverse-proxy hops in front of the server to trust (default `false`, `true`
   means `1`). When set, the default key is the `x-forwarded-for` entry that many hops from the
   *right* — the entry your own proxy appended — so a client cannot open fresh buckets by prepending
-  spoofed addresses. Leave it off for direct deployments: then `x-forwarded-for` is ignored
+  spoofed addresses. The entry must be a valid IPv4/IPv6 address (no port); otherwise it is ignored and
+  the key falls back to `request.ip`. Leave it off for direct deployments: then `x-forwarded-for` is ignored
   entirely, since anyone can send it.
 - `keyOf(request)`: the bucket key. Defaults to the client IP: the trusted `x-forwarded-for` entry
   when `trustProxy` is set, else `request.ip` when present (expose it in your `Bun.serve` fetch via
