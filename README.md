@@ -146,9 +146,10 @@ Options (`RateLimitOptions`, shared by both):
   entirely, since anyone can send it.
 - `keyOf(request)`: the bucket key. Defaults to the client IP: the trusted `x-forwarded-for` entry
   when `trustProxy` is set, else `request.ip` when present (expose it in your `Bun.serve` fetch via
-  `server.requestIP()`; see the router README), else a single global bucket. Behind a proxy you
-  must set `trustProxy` (or a custom `keyOf`): otherwise every client shares the proxy's
-  `request.ip` bucket and one abuser can exhaust the site-wide budget.
+  `server.requestIP()`; see the router README), else the request throws instead of silently sharing
+  one bucket across all clients (use `keyOf: () => "global"` if a site-wide limit is what you want).
+  Behind a proxy you must set `trustProxy` (or a custom `keyOf`): otherwise every client shares the
+  proxy's `request.ip` bucket and one abuser can exhaust the site-wide budget.
 - `skip(request)`: exempt requests (health checks, internal traffic).
 - `headers`: set `RateLimit-Limit` / `RateLimit-Remaining` / `RateLimit-Reset` (seconds) on responses
   (default `true`). `Retry-After` is always set on rejections.

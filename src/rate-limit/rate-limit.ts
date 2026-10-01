@@ -63,7 +63,9 @@ function clientKeyOf(trustProxy: boolean | number): (request: Request) => string
     }
     const ip = (request as { ip?: string }).ip;
     if (ip !== undefined && ip !== "") return ip;
-    return "global";
+    throw new Error(
+      "rateLimit: cannot identify the client. Expose request.ip, set trustProxy behind a proxy, or pass keyOf.",
+    );
   };
 }
 

@@ -21,7 +21,9 @@ const app = (options?: RateLimitOptions) =>
     }),
   );
 
-const get = (headers: Record<string, string> = {}) => new Request("http://localhost/data", { headers });
+const withIp = (request: Request, ip = "127.0.0.1"): Request => Object.assign(request, { ip });
+
+const get = (headers: Record<string, string> = {}) => withIp(new Request("http://localhost/data", { headers }));
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -96,11 +98,25 @@ describe("rateLimit", () => {
     expect((await handler(get({ "x-forwarded-for": "spoofed, 1.1.1.1, 10.0.0.1" }))).status).toBe(429);
   });
 
-  test("trustProxy without an x-forwarded-for header falls back to the shared bucket", async () => {
+  test("trustProxy without an x-forwarded-for header falls back to request.ip", async () => {
     const handler = app({ limit: 1, trustProxy: true });
 
     expect((await handler(get())).status).toBe(200);
     expect((await handler(get())).status).toBe(429);
+    expect((await handler(withIp(new Request("http://localhost/data"), "10.0.0.2"))).status).toBe(200);
+  });
+
+  test("fails closed when no client identity is available", async () => {
+    const handler = app({ limit: 1 });
+
+    await expect(handler(new Request("http://localhost/data"))).rejects.toThrow("cannot identify the client");
+  });
+
+  test("a custom keyOf can opt into a single shared bucket", async () => {
+    const handler = app({ limit: 1, keyOf: () => "global" });
+
+    expect((await handler(new Request("http://localhost/data"))).status).toBe(200);
+    expect((await handler(new Request("http://localhost/data"))).status).toBe(429);
   });
 
   test("truncates oversized forwarded entries so keys stay bounded", async () => {
@@ -163,7 +179,7 @@ describe("rateLimit", () => {
 });
 
 describe("rateLimitWs", () => {
-  const upgrade = (headers: Record<string, string> = {}) => new Request("http://localhost/ws", { headers });
+  const upgrade = (headers: Record<string, string> = {}) => withIp(new Request("http://localhost/ws", { headers }));
 
   const run = async (middleware: ReturnType<typeof rateLimitWs>, request: Request) => {
     const ctx = { request, response: undefined as Response | undefined };
