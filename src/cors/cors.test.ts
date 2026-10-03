@@ -5,20 +5,19 @@ import { toFetchHandler } from "@rhythmjs/router/fetch";
 import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import { cors, type CorsOptions } from "./cors";
 
-const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.middleware()));
-
 const app = (options?: CorsOptions) => {
   const events: string[] = [];
-  const handler = serve(
-    new RhythmRouter()
+  const router = new RhythmRouter().get("/api/data", (ctx) => {
+    ctx.text("data");
+  });
+  const handler = toFetchHandler(
+    new Rhythm<RhythmHttpContext>()
       .use(cors(options))
       .use(async (ctx, next) => {
         events.push("downstream");
         await next();
       })
-      .get("/api/data", (ctx) => {
-        ctx.text("data");
-      }),
+      .use(router.middleware()),
   );
   return { handler, events };
 };

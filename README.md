@@ -71,15 +71,21 @@ Cross-Origin Resource Sharing, modeled on
 router runs.
 
 ```ts
+import { Rhythm } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { cors } from "@rhythmjs/security/cors";
 
-new RhythmRouter()
+const router = new RhythmRouter().get("/api/data", (ctx) => {
+  ctx.text("data");
+});
+
+new Rhythm<RhythmHttpContext>()
   .use(cors({ origin: ["https://app.example.com"], credentials: true, maxAge: 600 }))
-  .get("/api/data", (ctx) => {
-    ctx.text("data");
-  });
+  .use(router.middleware());
 ```
+
+Mount `cors()` on the app, before the router. A middleware added with `router.use()` only runs when one of the router's later routes matches the request's method and path, so a preflight `OPTIONS` request for a path that only has a `GET` route would skip it.
 
 Options (`CorsOptions`):
 
@@ -144,7 +150,7 @@ Options (`RateLimitOptions`, shared by both):
   matters).
 - `trustProxy`: how many reverse-proxy hops in front of the server to trust (default `false`, `true`
   means `1`). When set, the default key is the `x-forwarded-for` entry that many hops from the
-  *right* — the entry your own proxy appended — so a client cannot open fresh buckets by prepending
+  _right_ — the entry your own proxy appended — so a client cannot open fresh buckets by prepending
   spoofed addresses. The entry must be a valid IPv4/IPv6 address (no port); otherwise it is ignored and
   the key falls back to `request.ip`. Leave it off for direct deployments: then `x-forwarded-for` is ignored
   entirely, since anyone can send it.
@@ -175,18 +181,18 @@ new RhythmRouter().use(secureHeaders()).get("/", (ctx) => {
 
 Defaults:
 
-| Header | Value |
+| Header                              | Value                                 |
 | ----------------------------------- | ------------------------------------- |
-| `Cross-Origin-Opener-Policy` | `same-origin` |
-| `Cross-Origin-Resource-Policy` | `same-origin` |
-| `Referrer-Policy` | `no-referrer` |
-| `Strict-Transport-Security` | `max-age=15552000; includeSubDomains` |
-| `X-Content-Type-Options` | `nosniff` |
-| `X-DNS-Prefetch-Control` | `off` |
-| `X-Download-Options` | `noopen` |
-| `X-Frame-Options` | `SAMEORIGIN` |
-| `X-Permitted-Cross-Domain-Policies` | `none` |
-| `X-XSS-Protection` | `0` |
+| `Cross-Origin-Opener-Policy`        | `same-origin`                         |
+| `Cross-Origin-Resource-Policy`      | `same-origin`                         |
+| `Referrer-Policy`                   | `no-referrer`                         |
+| `Strict-Transport-Security`         | `max-age=15552000; includeSubDomains` |
+| `X-Content-Type-Options`            | `nosniff`                             |
+| `X-DNS-Prefetch-Control`            | `off`                                 |
+| `X-Download-Options`                | `noopen`                              |
+| `X-Frame-Options`                   | `SAMEORIGIN`                          |
+| `X-Permitted-Cross-Domain-Policies` | `none`                                |
+| `X-XSS-Protection`                  | `0`                                   |
 
 Every option accepts a string to override the value or `false` to drop the header.
 `contentSecurityPolicy` and `crossOriginEmbedderPolicy` are off by default and set only when configured:
