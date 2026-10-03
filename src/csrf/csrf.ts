@@ -25,9 +25,7 @@ export function csrf(options: CsrfOptions = {}): Middleware<RhythmHttpContext> {
       FORM_CONTENT_TYPE.test(ctx.request.headers.get("content-type") ?? "") &&
       !isAllowedOrigin(ctx.request.headers.get("origin"), ctx.request.url)
     ) {
-      ctx.response.status = 403;
-      ctx.response.headers.set("content-type", "application/json");
-      ctx.response.body = JSON.stringify({ success: false, status: 403, message: "Forbidden" });
+      ctx.json({ success: false, status: 403, message: "Forbidden" }, 403);
       return;
     }
     await next();

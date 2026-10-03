@@ -17,7 +17,7 @@ const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpCont
 const app = (options?: RateLimitOptions) =>
   serve(
     new RhythmRouter().use(rateLimit(options)).get("/data", (ctx) => {
-      ctx.response.body = "ok";
+      ctx.text("ok");
     }),
   );
 

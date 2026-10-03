@@ -12,10 +12,10 @@ const app = (options?: CsrfOptions) =>
     new RhythmRouter()
       .use(csrf(options))
       .get("/form", (ctx) => {
-        ctx.response.body = "page";
+        ctx.text("page");
       })
       .post("/submit", (ctx) => {
-        ctx.response.body = "submitted";
+        ctx.text("submitted");
       }),
   );
 

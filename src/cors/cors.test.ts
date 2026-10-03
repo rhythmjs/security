@@ -17,7 +17,7 @@ const app = (options?: CorsOptions) => {
         await next();
       })
       .get("/api/data", (ctx) => {
-        ctx.response.body = "data";
+        ctx.text("data");
       }),
   );
   return { handler, events };

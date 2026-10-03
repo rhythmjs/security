@@ -77,7 +77,7 @@ import { cors } from "@rhythmjs/security/cors";
 new RhythmRouter()
   .use(cors({ origin: ["https://app.example.com"], credentials: true, maxAge: 600 }))
   .get("/api/data", (ctx) => {
-    ctx.response.body = "data";
+    ctx.text("data");
   });
 ```
 
@@ -101,7 +101,7 @@ cross-site pages cannot send without a CORS preflight) pass through.
 import { csrf } from "@rhythmjs/security/csrf";
 
 new RhythmRouter().use(csrf()).post("/submit", (ctx) => {
-  ctx.response.body = "submitted";
+  ctx.text("submitted");
 });
 ```
 
@@ -120,7 +120,7 @@ it.
 import { rateLimit } from "@rhythmjs/security/rate-limit";
 
 new RhythmRouter().use(rateLimit({ limit: 100, windowMs: 60_000 })).get("/api/data", (ctx) => {
-  ctx.response.body = "data";
+  ctx.text("data");
 });
 ```
 
@@ -169,7 +169,7 @@ Helmet-style security headers, applied to every response after the handlers run.
 import { secureHeaders } from "@rhythmjs/security/secure-headers";
 
 new RhythmRouter().use(secureHeaders()).get("/", (ctx) => {
-  ctx.response.body = "<h1>hi</h1>";
+  ctx.html("<h1>hi</h1>");
 });
 ```
 

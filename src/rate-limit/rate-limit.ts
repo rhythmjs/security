@@ -120,10 +120,8 @@ export function rateLimit(options: RateLimitOptions = {}): Middleware<RhythmHttp
       ctx.response.headers.set("ratelimit-reset", String(verdict.resetSeconds));
     }
     if (!verdict.allowed) {
-      ctx.response.status = 429;
       ctx.response.headers.set("retry-after", String(verdict.resetSeconds));
-      ctx.response.headers.set("content-type", "application/json");
-      ctx.response.body = JSON.stringify({ success: false, status: 429, message });
+      ctx.json({ success: false, status: 429, message }, 429);
       return;
     }
     await next();

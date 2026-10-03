@@ -10,8 +10,7 @@ const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpCont
 const app = (options?: SecureHeadersOptions) =>
   serve(
     new RhythmRouter().use(secureHeaders(options)).get("/", (ctx) => {
-      ctx.response.headers.set("content-type", "text/html");
-      ctx.response.body = "<h1>hi</h1>";
+      ctx.html("<h1>hi</h1>");
     }),
   );
 
@@ -68,7 +67,7 @@ describe("secureHeaders", () => {
   test("leaves handler-set headers and the body untouched", async () => {
     const res = await app()(new Request("http://localhost/"));
 
-    expect(res.headers.get("content-type")).toBe("text/html");
+    expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
     expect(await res.text()).toBe("<h1>hi</h1>");
   });
 });
