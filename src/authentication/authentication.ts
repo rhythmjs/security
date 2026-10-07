@@ -1,5 +1,6 @@
-import type { DeriveMiddleware, Middleware } from "@rhythmjs/rhythm/types";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import { derive } from "@rhythmjs/rhythm";
+import type { ExtensionMiddleware, Middleware } from "@rhythmjs/rhythm/types";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 
 export interface UserContext<TUser = unknown> {
   user: TUser | null;
@@ -19,14 +20,11 @@ export interface RequireAuthenticationOptions {
 
 export function attachUser<TUser>(
   resolve: (ctx: RhythmHttpContext) => TUser | null | undefined | Promise<TUser | null | undefined>,
-): DeriveMiddleware<RhythmHttpContext, UserContext<TUser>> {
+) {
   if (typeof resolve !== "function") throw new TypeError("attachUser resolver must be a function!");
-  const middleware: Middleware<RhythmHttpContext> = async (ctx, next) => {
-    const user = (await resolve(ctx)) ?? null;
-    Object.assign(ctx, { user });
-    await next();
-  };
-  return middleware as DeriveMiddleware<RhythmHttpContext, UserContext<TUser>>;
+  return derive(async (ctx: RhythmHttpContext): Promise<UserContext<TUser>> => ({
+    user: (await resolve(ctx)) ?? null,
+  }));
 }
 
 export function isAuthenticated<TUser>(ctx: UserContext<TUser>): ctx is UserContext<TUser> & { user: TUser } {
@@ -35,7 +33,7 @@ export function isAuthenticated<TUser>(ctx: UserContext<TUser>): ctx is UserCont
 
 export function requireAuthentication<TUser = unknown>(
   options: RequireAuthenticationOptions = {},
-): DeriveMiddleware<RhythmHttpContext & UserContext<TUser>, { user: TUser }> {
+): ExtensionMiddleware<RhythmHttpContext & UserContext<TUser>, { user: TUser }> {
   const middleware: Middleware<RhythmHttpContext & UserContext<TUser>> = async (ctx, next) => {
     if (!isAuthenticated(ctx)) {
       if (options.redirectTo) {
@@ -48,7 +46,7 @@ export function requireAuthentication<TUser = unknown>(
     }
     await next();
   };
-  return middleware as DeriveMiddleware<RhythmHttpContext & UserContext<TUser>, { user: TUser }>;
+  return middleware as ExtensionMiddleware<RhythmHttpContext & UserContext<TUser>, { user: TUser }>;
 }
 
 export function redirectIfAuthenticated(to: string): Middleware<RhythmHttpContext & UserContext> {

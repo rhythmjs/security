@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { cors, type CorsOptions } from "./cors";
 
 const app = (options?: CorsOptions) => {
@@ -11,13 +11,13 @@ const app = (options?: CorsOptions) => {
     ctx.text("data");
   });
   const handler = toFetchHandler(
-    new Rhythm<RhythmHttpContext>()
+    new Rhythm<{}, RhythmHttpContext>()
       .use(cors(options))
       .use(async (ctx, next) => {
         events.push("downstream");
         await next();
       })
-      .use(router.middleware()),
+      .use(mount(router)),
   );
   return { handler, events };
 };

@@ -10,6 +10,8 @@ secure headers. Each module is exported by its own subpath; there is no root bar
 bun add @rhythmjs/security @rhythmjs/rhythm @rhythmjs/router
 ```
 
+Routers are mounted into a `Rhythm` app with `mount(router)`; the snippets below that show only a router assume that.
+
 ## `@rhythmjs/security/authentication`
 
 Strategy-agnostic authentication plumbing: it does not verify credentials itself; you decide how a
@@ -17,18 +19,22 @@ request maps to a user (session lookup, token check, anything) and these helpers
 the `ctx.user` convention.
 
 ```ts
+import { Rhythm, mount } from "@rhythmjs/rhythm";
+import { RhythmRouter } from "@rhythmjs/router";
 import { attachUser, getBearerToken, requireAuthentication } from "@rhythmjs/security/authentication";
 
-new RhythmRouter()
+const me = new RhythmRouter()
   .use(attachUser(async (ctx) => users.findByToken(getBearerToken(ctx.request))))
   .get("/me", requireAuthentication<User>(), (ctx) => {
     ctx.json(ctx.user);
   });
+
+const app = new Rhythm().use(mount(me));
 ```
 
-- `attachUser(resolve)`: derive middleware that runs your resolver on every request and attaches
+- `attachUser(resolve)`: extension middleware (built on `derive`) that runs your resolver on every request and attaches
   `ctx.user` (`TUser | null`). This is the single integration point for whatever auth strategy you use.
-- `requireAuthentication(options?)`: derive middleware that gates a route; with a user it narrows
+- `requireAuthentication(options?)`: extension middleware that gates a route; with a user it narrows
   `ctx.user` to `TUser` for the handler; without one it responds `401` (or `options.status` /
   `options.message`), sets `WWW-Authenticate` from `options.challenge`, or redirects to
   `options.redirectTo` for web pages.
@@ -71,7 +77,7 @@ Cross-Origin Resource Sharing, modeled on
 router runs.
 
 ```ts
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { cors } from "@rhythmjs/security/cors";
@@ -80,12 +86,12 @@ const router = new RhythmRouter().get("/api/data", (ctx) => {
   ctx.text("data");
 });
 
-new Rhythm<RhythmHttpContext>()
+const app = new Rhythm<{}, RhythmHttpContext>()
   .use(cors({ origin: ["https://app.example.com"], credentials: true, maxAge: 600 }))
-  .use(router.middleware());
+  .use(mount(router));
 ```
 
-Mount `cors()` on the app, before the router. A middleware added with `router.use()` only runs when one of the router's later routes matches the request's method and path, so a preflight `OPTIONS` request for a path that only has a `GET` route would skip it.
+Add `cors()` to the app with `.use()`, before `mount(router)`. A middleware added with `router.use()` only runs when one of the router's later routes matches the request's method and path, so a preflight `OPTIONS` request for a path that only has a `GET` route would skip it.
 
 Options (`CorsOptions`):
 

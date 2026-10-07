@@ -1,16 +1,15 @@
 import { describe, expect, test } from "bun:test";
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-import type { RhythmRouterContext } from "@rhythmjs/router";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 import { attachUser } from "../authentication/authentication";
 import { authorize, requirePermissions, requireRoles } from "./authorization";
 
 type User = { id: string; roles: string[]; permissions: string[] };
 const editor: User = { id: "1", roles: ["editor"], permissions: ["posts:read", "posts:write"] };
 
-const serve = (router: RhythmRouter<any>) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.middleware()));
+const serve = (router: RhythmRouter<any, any>) => toFetchHandler(new Rhythm().use(mount(router)));
 
 const withUser = (user: User | null) => new RhythmRouter().use(attachUser(() => user));
 
@@ -34,7 +33,7 @@ describe("authorize()", () => {
   test("supports async checks reading the context", async () => {
     const router = withUser(editor).get(
       "/posts/:id",
-      authorize<RhythmHttpContext & RhythmRouterContext>(async (ctx) => ctx.params.id === "1"),
+      authorize<RhythmHttpContext & { params: Record<string, string> }>(async (ctx) => ctx.params.id === "1"),
       (ctx) => ctx.text("post"),
     );
     const handler = serve(router);

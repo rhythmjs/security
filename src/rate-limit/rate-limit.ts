@@ -1,6 +1,6 @@
 import { isIP } from "node:net";
 import type { Middleware } from "@rhythmjs/rhythm/types";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
+import type { RhythmHttpContext } from "@rhythmjs/router/context";
 
 export interface RateLimitInfo {
   count: number;

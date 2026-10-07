@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import {
   memoryRateLimitStore,
   rateLimit,
@@ -12,7 +11,7 @@ import {
   type RateLimitStore,
 } from "./rate-limit";
 
-const serve = (router: RhythmRouter) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.middleware()));
+const serve = (router: RhythmRouter<any, any>) => toFetchHandler(new Rhythm().use(mount(router)));
 
 const app = (options?: RateLimitOptions) =>
   serve(
@@ -109,7 +108,9 @@ describe("rateLimit", () => {
   test("fails closed when no client identity is available", async () => {
     const handler = app({ limit: 1 });
 
-    await expect(handler(new Request("http://localhost/data"))).rejects.toThrow("cannot identify the client");
+    const error = await handler(new Request("http://localhost/data")).catch((caught: Error) => caught);
+
+    expect((error as Error).cause).toMatchObject({ message: expect.stringContaining("cannot identify the client") });
   });
 
   test("a custom keyOf can opt into a single shared bucket", async () => {

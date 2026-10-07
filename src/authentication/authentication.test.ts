@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { Rhythm } from "@rhythmjs/rhythm";
+import { Rhythm, mount } from "@rhythmjs/rhythm";
 import { RhythmRouter } from "@rhythmjs/router";
 import { toFetchHandler } from "@rhythmjs/router/fetch";
-import type { RhythmHttpContext } from "@rhythmjs/router/adapters/context";
 import {
   attachUser,
   getBasicCredentials,
@@ -15,7 +14,7 @@ import {
 type User = { id: string; name: string };
 const ada: User = { id: "1", name: "Ada" };
 
-const serve = (router: RhythmRouter<any>) => toFetchHandler(new Rhythm<RhythmHttpContext>().use(router.middleware()));
+const serve = (router: RhythmRouter<any, any>) => toFetchHandler(new Rhythm().use(mount(router)));
 
 describe("attachUser()", () => {
   test("resolves and attaches the user for downstream middleware", async () => {

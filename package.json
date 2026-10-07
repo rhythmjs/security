@@ -1,6 +1,6 @@
 {
   "name": "@rhythmjs/security",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Security middleware (CORS, CSRF protection, secure headers, rate limiting) for Rhythm routers and handlers.",
   "keywords": [
     "cors",
@@ -70,8 +70,8 @@
     "typescript": "^7.0.2"
   },
   "peerDependencies": {
-    "@rhythmjs/rhythm": ">=0.0.14",
-    "@rhythmjs/router": ">=0.0.13"
+    "@rhythmjs/rhythm": ">=0.0.18",
+    "@rhythmjs/router": ">=0.0.18"
   },
   "engines": {
     "bun": ">=1.2.0"
