@@ -1,6 +1,6 @@
 {
   "name": "@rhythmjs/security",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "Security middleware (CORS, CSRF protection, secure headers, rate limiting) for Rhythm routers and handlers.",
   "keywords": [
     "cors",
@@ -23,14 +23,6 @@
   "type": "module",
   "sideEffects": false,
   "exports": {
-    "./authentication": {
-      "types": "./dist/authentication/authentication.d.ts",
-      "default": "./dist/authentication/authentication.js"
-    },
-    "./authorization": {
-      "types": "./dist/authorization/authorization.d.ts",
-      "default": "./dist/authorization/authorization.js"
-    },
     "./cors": {
       "types": "./dist/cors/cors.d.ts",
       "default": "./dist/cors/cors.js"
@@ -55,7 +47,7 @@
   "scripts": {
     "clean": "rm -rf dist",
     "prebuild": "bun run clean",
-    "build": "bun build src/authentication/authentication.ts src/authorization/authorization.ts src/cors/cors.ts src/csrf/csrf.ts src/rate-limit/rate-limit.ts src/secure-headers/secure-headers.ts --outdir dist --root src --format esm --target bun --packages external --splitting && tsc -p tsconfig.build.json",
+    "build": "bun build src/cors/cors.ts src/csrf/csrf.ts src/rate-limit/rate-limit.ts src/secure-headers/secure-headers.ts --outdir dist --root src --format esm --target bun --packages external --splitting && tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run check && bun test && bun run build",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
