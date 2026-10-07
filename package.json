@@ -1,6 +1,6 @@
 {
   "name": "@rhythmjs/security",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Security middleware (CORS, CSRF protection, secure headers, rate limiting) for Rhythm routers and handlers.",
   "keywords": [
     "cors",
@@ -53,6 +53,8 @@
     "access": "public"
   },
   "scripts": {
+    "clean": "rm -rf dist",
+    "prebuild": "bun run clean",
     "build": "bun build src/authentication/authentication.ts src/authorization/authorization.ts src/cors/cors.ts src/csrf/csrf.ts src/rate-limit/rate-limit.ts src/secure-headers/secure-headers.ts --outdir dist --root src --format esm --target bun --packages external --splitting && tsc -p tsconfig.build.json",
     "prepublishOnly": "bun run check && bun test && bun run build",
     "typecheck": "tsc --noEmit",
